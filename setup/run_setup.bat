@@ -21,11 +21,16 @@ SET "LOG_FILE=%SCRIPT_DIR%setup_log.txt"
 
 REM --- Dynamically determine BASE_DIR and VENV_ACTIVATE_SCRIPT ---
 REM The Python script calculates base_dir as two levels up from its own location.
-REM If setup.py is in D:\JanusGraph\learning\setup\, then base_dir is D:\JanusGraph\learning\.
-REM We need to replicate that logic here for the batch file to find activate.bat.
-FOR %%I IN ("%SCRIPT_DIR%") DO SET "PARENT_DIR=%%~dpI"
-FOR %%I IN ("%PARENT_DIR%") DO SET "BASE_DIR=%%~dpI"
-SET "BASE_DIR=%BASE_DIR:~0,-1%" REM Remove trailing slash for cleaner path building
+REM If setup.py is in D:\JanusGraph\learning\setup\, then base_dir is D:\JanusGraph\learning.
+REM We replicate that logic here for the batch file to find activate.bat reliably.
+pushd "%~dp0"
+cd ..
+SET "BASE_DIR=%CD%"
+popd
+
+REM Debug: Print the calculated BASE_DIR to the log file (helpful for troubleshooting)
+echo Debug (Batch): SCRIPT_DIR is "%SCRIPT_DIR%" >> "%LOG_FILE%"
+echo Debug (Batch): Calculated BASE_DIR is "%BASE_DIR%" >> "%LOG_FILE%"
 
 SET "VENV_ACTIVATE_SCRIPT=%BASE_DIR%\.venv\Scripts\activate.bat"
 
@@ -97,6 +102,7 @@ IF "%SCRIPT_SUCCESS%"=="1" (
         IF NOT EXIST "%VENV_ACTIVATE_SCRIPT%" (
             echo ERROR: Activation script not found at "%VENV_ACTIVATE_SCRIPT%".
             echo Virtual environment might not have been created or path is wrong.
+            echo Debug: VENV_ACTIVATE_SCRIPT was "%VENV_ACTIVATE_SCRIPT%" >> "%LOG_FILE%"
         ) ELSE (
             REM Call the activate script. 'call' is important so the batch file resumes.
             call "%VENV_ACTIVATE_SCRIPT%"
